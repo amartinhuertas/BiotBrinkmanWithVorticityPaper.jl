@@ -1,6 +1,6 @@
 using BiotBrinkmanWithVorticityPaper
 using Test
 
-@testset "BiotBrinkmanWithVorticityPaper.jl" begin
-    # Write your tests here.
+@testset "ConvergenceTests.jl" begin
+    include("ConvergenceTests.jl")
 end
