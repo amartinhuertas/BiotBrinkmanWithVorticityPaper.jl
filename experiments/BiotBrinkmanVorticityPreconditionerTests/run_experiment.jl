@@ -22,9 +22,9 @@ end
 
 function generate_param_dicts()
    params = Dict{Symbol,Any}(
-     :nk           => [1, 2, 3],
+     :nk           => [1, 2, 3, 4, 5],
      :order        => [0],
-     :μ            => [1.],
+     :μ            => [1.,1.e8],
      :λ            => [1.,1.e8],
      :ν            => [1.,1.e-8],
      :κ            => [1.,1.e-8],
