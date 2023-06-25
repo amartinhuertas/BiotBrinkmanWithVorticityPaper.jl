@@ -14,7 +14,7 @@ function LinearAlgebra.mul!(z::AbstractVector{T},
               M::GridapLinearSolverPreconditioner,
               r::AbstractVector{T}) where T
   # Solve Mz=r ...
-  solve!(z,M.numerical_setup,r)
+  Gridap.solve!(z,M.numerical_setup,r)
 end
 
 function LinearOperators.LinearOperator(solver::GridapLinearSolverPreconditioner)

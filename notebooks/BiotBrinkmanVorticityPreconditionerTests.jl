@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.22
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -246,17 +246,21 @@ function generate_mxn_grid_plot(grid_param,
 	_,_,params_possible_values = get_x_y(xparam,yparam,ffilter,df)
 	@assert grid_param in keys(params_possible_values)
 	grid_param_values=params_possible_values[grid_param]
+    grid_param_values=[x for x in grid_param_values if (x==:B1 || x==:B3)]
     plots=Vector{Any}(undef,length(grid_param_values))
 	for (i,val) in enumerate(grid_param_values)
-		ffilter_grid_param=[grid_param]=>(grid_param)->(grid_param==val);
-		df_filtered_grid_param = filter(ffilter_grid_param,df)
-		println(title)
-		if (grid_param==:B && val==:B1)
+		if (grid_param==:B && (val==:B1 || val==:B3)) 
+		 ffilter_grid_param=[grid_param]=>(grid_param)->(grid_param==val);
+		 df_filtered_grid_param = filter(ffilter_grid_param,df)
+		 println(title)
+		 if (grid_param==:B && val==:B1)
 		   title_subplot=L"\mathcal{B}=\mathcal{B}1 \ " * title
-		elseif (grid_param==:B && val==:B4)
+		 elseif (grid_param==:B && val==:B2)
+		   title_subplot=L"\mathcal{B}=\mathcal{B}2 \ " * title
+		 elseif (grid_param==:B && val==:B3)
 		   title_subplot=L"\mathcal{B}=\mathcal{B}3 \ " * title
-		end 
-		plots[i]=
+		 end 
+		 plots[i]=
 	        plot_xparam_versus_yparam(xparam,yparam,
 		                  (logxval ? :log10 : :none),
 		                  (logyval ? :log10 : :none),
@@ -278,8 +282,9 @@ function generate_mxn_grid_plot(grid_param,
 				          xlabelfontsize=xlabelfontsize,
 			              ylabelfontsize=ylabelfontsize,
 			              )
-	end 
-	plot(plots..., layout = layout, size=size)
+		 end 
+	 end 
+	 plot(plots..., layout = layout, size=size)
 end 
 
 # ╔═╡ af9c277b-6ad2-4be0-abb7-5ad505aa7649

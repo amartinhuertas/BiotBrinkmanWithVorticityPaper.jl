@@ -236,8 +236,6 @@ function solve_biotbrinkman_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, d�
                         callback=minres_callback,
                         atol=0.0,
                         rtol=0.0,
-                        ratol=0.0,
-                        rrtol=0.0,
                         etol=0.0)
   xh=FEFunction(op.trial,xdofs)
 

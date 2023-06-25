@@ -4,7 +4,7 @@ using DrWatson
 # The following macro call let us execute the script with
 # the project's environment even if we ran the julia REPL
 # without the --project=... flag
-@quickactivate "BiotBrinkmanWithVorticity"
+@quickactivate "BiotBrinkmanWithVorticityPaper"
 
 function replace_strings_by_symbols(r)
   d = Dict{Symbol,Any}()
