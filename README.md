@@ -1,3 +1,9 @@
+
+
+[![DOI](https://zenodo.org/badge/658182544.svg)](https://zenodo.org/badge/latestdoi/658182544)
+
+
+
 # BiotBrinkmanWithVorticityPaper
 
 Repository that holds the Julia software and computational results reported in Section 5.3 of the paper _"Robust finite element methods and solvers for the Biot-Brinkman equations in vorticity form"_ by _R. Caraballo, C. W. In, A. F. Martín, and R. Ruiz-Baier_. The results in Section 5.1 of the paper were not actually obtained with the software in this repository. However, the repository also contains Julia scripts to reproduce the experiments in this section in the particular case of mixed boundary conditions (not actually reported in the paper for the sake of brevity).
