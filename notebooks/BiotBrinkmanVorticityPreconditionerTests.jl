@@ -305,8 +305,13 @@ begin
 	elseif (αval==1.0e-08)
 		αvals="10^{-8}"
 	end
-	title_plot1=L"\ \ \mu=%$(μvals) \ \ \lambda=%$(λvals) \ \ \alpha=%$(αvals) \ \ \nu=1"
-	ffilter_plot1=[:μ,:λ,:α,:ν]=>(μ,λ,α,ν)->(μ==μval && λ==λval && α==αval && ν==1);
+	if (νval==1.0)
+		νvals="1"
+	elseif (νval==1.0e-08)
+		νvals="10^{-8}"
+	end
+	title_plot1=L"\ \ \mu=%$(μvals) \ \ \lambda=%$(λvals) \ \ \alpha=%$(αvals) \ \ \nu=%$(νvals)"
+	ffilter_plot1=[:μ,:λ,:α,:ν]=>(μ,λ,α,ν)->(μ==μval && λ==λval && α==αval && ν==νval);
 	df_filtered_plot1 = df[:,cols_to_filter_plot1];
 	layout = @layout [a b];
 	plt=generate_mxn_grid_plot(:B, layout,
@@ -323,7 +328,7 @@ begin
 	                       size=(800,500),
 	                       xlabel=L"\mathrm{DoF}",
 						   ylabel=L"\mathrm{\#iterations}")
-    savefig(plt,"iters_versus_dofs_lambda_1_v1e-08.pdf")
+    savefig(plt,"iters_versus_dofs_lambda_1e8_v1.pdf")
 	plt
 end
 
