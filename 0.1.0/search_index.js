@@ -1,0 +1,3 @@
+var documenterSearchIndex = {"docs":
+[{"location":"","page":"Home","title":"Home","text":"CurrentModule = BiotBrinkmanWithVorticityPaper","category":"page"},{"location":"#BiotBrinkmanWithVorticityPaper","page":"Home","title":"BiotBrinkmanWithVorticityPaper","text":"","category":"section"},{"location":"","page":"Home","title":"Home","text":"Documentation for BiotBrinkmanWithVorticityPaper.","category":"page"},{"location":"","page":"Home","title":"Home","text":"","category":"page"},{"location":"","page":"Home","title":"Home","text":"Modules = [BiotBrinkmanWithVorticityPaper]","category":"page"}]
+}
