@@ -19,7 +19,6 @@ function convergence_test(order, μ, λ, ν, κ, α, c_0, nkmax;
     rω = Float64[]
     rp = Float64[]
     rφ = Float64[]
-    lossn = Float64[]
     hh = Float64[]
     nn = Int[]
 
@@ -29,9 +28,9 @@ function convergence_test(order, μ, λ, ν, κ, α, c_0, nkmax;
     push!(rp,0.)
     push!(rφ,0.)
 
-    for nk in 1:nkmax
+    for nk in 1:nkmax+1
         println("******** Refinement step: $nk")
-        model=generate_model3d(nk)
+        model=generate_model3d(nk-1)
         op=assemble_biotbrinkman(model, order, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
         xh=solve(op)
         uh, vh, ωh, φh, ph = xh
@@ -39,7 +38,7 @@ function convergence_test(order, μ, λ, ν, κ, α, c_0, nkmax;
         Ω = Triangulation(model)
         dΩ = Measure(Ω,2*(order+2))
 
-        error_u,error_v,error_ω,error_φ,error_p,lossh=
+        error_u,error_v,error_ω,error_φ,error_p=
           compute_errors_biotbrinkman(xh, dΩ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
         push!(nn,ndofs)
@@ -50,7 +49,6 @@ function convergence_test(order, μ, λ, ν, κ, α, c_0, nkmax;
         push!(eω,error_ω)
         push!(eφ,error_φ)
         push!(ep,error_p)
-        push!(lossn,lossh)
         if nk>1
             push!(ru, log(eu[nk]/eu[nk-1])/log(hh[nk]/hh[nk-1]))
             push!(rv, log(ev[nk]/ev[nk-1])/log(hh[nk]/hh[nk-1]))
@@ -59,24 +57,28 @@ function convergence_test(order, μ, λ, ν, κ, α, c_0, nkmax;
             push!(rp, log(ep[nk]/ep[nk-1])/log(hh[nk]/hh[nk-1]))
         end
     end
-    println("============================================================================================================================")
-    println("   DoF  &    h   &   e(u)   &  r(u) &   e(v)   &  r(v) &   e(ω)   &  r(ω) &   e(φ)   &  r(φ) &   e(p)   &  r(p) &  |loss|   ")
-    println("============================================================================================================================")
-    for nk in 1:nkmax
-        @printf("%7d & %.4f & %.2e & %.3f & %.2e & %.3f & %.2e & %.3f & %.2e & %.3f & %.2e & %.3f & %.2e \n", nn[nk], hh[nk], eu[nk], ru[nk], ev[nk], rv[nk],  eω[nk], rω[nk], eφ[nk], rφ[nk], ep[nk], rp[nk], lossn[nk]);
+    println("================================================================================================================")
+    println("   DoF  &    h   &   e(u)   &  r(u) &   e(v)   &  r(v) &   e(ω)   &  r(ω) &   e(φ)   &  r(φ) &   e(p)   &  r(p)    ")
+    println("================================================================================================================")
+    for nk in 1:nkmax+1
+        @printf("%7d & %.4f & %.2e & %.3f & %.2e & %.3f & %.2e & %.3f & %.2e & %.3f & %.2e & %.3f \n", nn[nk], hh[nk], eu[nk], ru[nk], ev[nk], rv[nk],  eω[nk], rω[nk], eφ[nk], rφ[nk], ep[nk], rp[nk]);
     end
     println("============================================================================================================================")
 end
 
 # Arbitrary model parameters
-const μ   = 1.0
-const λ   = 1.0
-const ν   = 1.0
-const κ   = 1.0
-const α   = 1.0
-const c_0 = 1.0
+const μ   = 10.0
+const λ   = 1.0e+03
+const ν   = 1.0e-02
+const κ   = 1.0e-03
+const α   = 0.5
+const c_0 = 0.1
 
-const nkmax = 3
-const order = 0 
-
+nkmax = 4 
+order = 0
 convergence_test(order, μ, λ, ν, κ, α, c_0, nkmax)
+
+order = 1
+convergence_test(order, μ, λ, ν, κ, α, c_0, nkmax)
+
+

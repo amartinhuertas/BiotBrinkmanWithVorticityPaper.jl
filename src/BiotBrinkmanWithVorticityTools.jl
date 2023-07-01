@@ -252,18 +252,11 @@ function compute_errors_biotbrinkman(xh, dΩ, μ, λ, ν, κ, α, c_0, u_ex, p_e
   φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex, flux_ex =
     define_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
-  # project the mass loss onto Zh, and take the l_infty norm of that quantity...
-  a(u,v) = ∫( u*v )*dΩ
-  l(v) = ∫(v*(-(c_0+α^2/λ)*ph+α/λ*φh-(∇⋅vh)-g_ex))*dΩ
-  projection = AffineFEOperator(a,l,Zh,Zh)
-  loss = solve(projection)
-  lossh=norm(get_free_dof_values(loss),Inf)
-
   # errors in the non-weighted norms
   error_u = sqrt(sum(∫((u_ex-uh)⋅(u_ex-uh))*dΩ +∫(∇(u_ex-uh)⊙∇(u_ex - uh))*dΩ))
   error_v = sqrt(sum(∫((v_ex-vh)⋅(v_ex-vh))*dΩ + ∫((∇⋅(v_ex-vh))*(∇⋅(v_ex-vh)))*dΩ))
   error_ω = sqrt(sum(∫((ω_ex-ωh)⋅(ω_ex-ωh))*dΩ + ∫((∇×(ω_ex-ωh))⋅(∇×(ω_ex-ωh)))*dΩ))
   error_φ = sqrt(sum(∫((φ_ex-φh)*(φ_ex-φh))*dΩ))
   error_p = sqrt(sum(∫((p_ex-ph)*(p_ex-ph))*dΩ))
-  error_u,error_v,error_ω,error_φ,error_p, lossh
+  error_u,error_v,error_ω,error_φ,error_p
 end
