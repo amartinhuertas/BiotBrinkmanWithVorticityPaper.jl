@@ -1,6 +1,11 @@
 using BiotBrinkmanWithVorticityPaper
 using Test
 
-@testset "ConvergenceTests.jl" begin
-    include("ConvergenceTests.jl")
+@testset "BiotBrinkman2DConvergenceTests.jl" begin
+    include("BiotBrinkman2DConvergenceTests.jl")
 end
+
+@testset "BiotBrinkman3DConvergenceTests.jl" begin
+    include("BiotBrinkman3DConvergenceTests.jl")
+end
+

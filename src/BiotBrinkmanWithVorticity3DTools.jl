@@ -1,16 +1,15 @@
 # default manufactured solutions
-default_u_ex(x)  = VectorValue(0.1*sin(π*(x[1]+x[2]+x[3])),
-                                0.1*cos(π*(x[1]^2+x[2]^2+x[3]^2)),
-                                0.1*sin(π*(x[1]+x[2]+x[3]))*cos(π*(x[1]+x[2]+x[3])))
+default_3D_u_ex(x)  = VectorValue(0.1*sin(π*(x[1]+x[2]+x[3])),
+                                  0.1*cos(π*(x[1]^2+x[2]^2+x[3]^2)),
+                                  0.1*sin(π*(x[1]+x[2]+x[3]))*cos(π*(x[1]+x[2]+x[3])))
 
-default_p_ex(x)  = sin(π*x[1])*cos(π*x[2])*sin(π*x[3])
+default_3D_p_ex(x)  = sin(π*x[1])*cos(π*x[2])*sin(π*x[3])
 
-default_v_ex(x)  = VectorValue((sin(π*x[1]))^2*sin(π*x[2])*sin(2*π*x[3]), 
-                                sin(π*x[1])*(sin(π*x[2]))^2*sin(2*π*x[3]),
-                                sin(π*x[1])*sin(2*π*x[2])*sin(π*x[3]))
+default_3D_v_ex(x)  = VectorValue((sin(π*x[1]))^2*sin(π*x[2])*sin(2*π*x[3]), 
+                                   sin(π*x[1])*(sin(π*x[2]))^2*sin(2*π*x[3]),
+                                   sin(π*x[1])*sin(2*π*x[2])*sin(π*x[3]))
 
-
-function define_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+function build_3D_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
   Id = TensorValue(1,0,0,0,1,0,0,0,1)
   φ_ex(x) = α*p_ex(x)-λ*(∇⋅u_ex)(x)
   ω_ex(x) = sqrt(ν/κ)*(∇×v_ex)(x)
@@ -18,28 +17,27 @@ function define_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
   b_ex(x) = -(∇⋅σ_ex)(x)
   f_ex(x) = 1.0/κ*v_ex(x) + sqrt(ν/κ)*(∇×ω_ex)(x)-ν/κ*∇(∇⋅v_ex)(x)+∇(p_ex)(x)
   g_ex(x) = -(c_0 + α^2/λ)*p_ex(x) + α/λ*φ_ex(x) - (∇⋅v_ex)(x)
-  flux_ex(x) = κ/ν*∇(p_ex)(x)
-  return φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex, flux_ex
-end
+  return φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex
+end 
 
-function setup_model_labels_3d!(model)
+function setup_3D_model_labels!(model)
     labels = get_face_labeling(model)
     add_tag!(labels,"Gamma",[1,2,4,5,6,8,21,23,26,9,10,11,13,14,16,17,18,20])
     add_tag!(labels,"Sigma",[22,24,25])
 end
 
-function generate_model3d(nk)
+function generate_3D_model(nk)
   domain =(0,1,0,1,0,1)
-  n      = 2^nk
+  n      = 2^nk+1
   partition = (n,n,n)
   model=CartesianDiscreteModel(domain, partition) |> simplexify
-  setup_model_labels_3d!(model)
+  setup_3D_model_labels!(model)
   model
 end
 
-function assemble_biotbrinkman(model, k, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
-   φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex, flux_ex =
-     define_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+function assemble_3D(model, k, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+   φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex =
+     build_3D_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
    Dc = num_cell_dims(model)
 
@@ -93,10 +91,10 @@ function assemble_biotbrinkman(model, k, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_
    op = AffineFEOperator(lhs,rhs,Xh,Yh)
 end
 
-function assemble_biotbrinkman_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
-                                                                   h_e, h_e_Σ,
-                                                                   μ, λ, ν, κ, α, c_0;
-                                                                   prec_variant=:B1)
+function assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
+                                                         h_e, h_e_Σ,
+                                                         μ, λ, ν, κ, α, c_0;
+                                                         prec_variant=:B1)
   Y1,Y2,Y3,Y4,Y5=op.test
   X1,X2,X3,X4,X5=op.trial
   @assert prec_variant in (:B1,:B2,:B3)
@@ -138,13 +136,13 @@ function assemble_biotbrinkman_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ,
   end
 end 
 
-function solve_biotbrinkman_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ, h_e, h_e_Σ,
-                                                                μ, λ, ν, κ, α, c_0;
-                                                                rtol=1.0e-6,
-                                                                itmax=500,
-                                                                prec_variant=:B1,
-                                                                verbose=false,
-                                                                diagnostics=false)
+function solve_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ, h_e, h_e_Σ,
+                                                      μ, λ, ν, κ, α, c_0;
+                                                      rtol=1.0e-6,
+                                                      itmax=500,
+                                                      prec_variant=:B1,
+                                                      verbose=false,
+                                                      diagnostics=false)
 
   if (verbose)
     println("###############")
@@ -158,7 +156,7 @@ function solve_biotbrinkman_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, d�
     println("###############")
   end
 
-  blocks=assemble_biotbrinkman_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
+  blocks=assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
                                                             h_e, h_e_Σ,
                                                             μ, λ, ν, κ, α, c_0;
                                                             prec_variant=prec_variant)
@@ -245,18 +243,26 @@ function solve_biotbrinkman_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, d�
   xh, stats, conv_history
 end
 
-function compute_errors_biotbrinkman(xh, dΩ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+function compute_errors_3D(xh, dΩ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
   uh, vh, ωh, φh, ph = xh
-  Xh = Gridap.FESpaces.get_fe_space(xh)
-  _, _, _, Zh, _ = Xh
-  φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex, flux_ex =
-    define_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
-  # errors in the non-weighted norms
-  error_u = sqrt(sum(∫((u_ex-uh)⋅(u_ex-uh))*dΩ +∫(∇(u_ex-uh)⊙∇(u_ex - uh))*dΩ))
-  error_v = sqrt(sum(∫((v_ex-vh)⋅(v_ex-vh))*dΩ + ∫((∇⋅(v_ex-vh))*(∇⋅(v_ex-vh)))*dΩ))
-  error_ω = sqrt(sum(∫((ω_ex-ωh)⋅(ω_ex-ωh))*dΩ + ∫((∇×(ω_ex-ωh))⋅(∇×(ω_ex-ωh)))*dΩ))
-  error_φ = sqrt(sum(∫((φ_ex-φh)*(φ_ex-φh))*dΩ))
-  error_p = sqrt(sum(∫((p_ex-ph)*(p_ex-ph))*dΩ))
-  error_u,error_v,error_ω,error_φ,error_p
+  φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex =
+    build_3D_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+
+  eu = u_ex-uh
+  ev = v_ex-vh
+  eω = ω_ex-ωh
+  eφ = φ_ex-φh
+  ep = p_ex-ph
+
+  # error in the weighted norm
+  error = sum(∫(2.0*μ*ε(eu)⊙ε(eu) + 
+                1.0/κ*ev⋅ev + 
+                ν/κ*(divergence(ev)*divergence(ev)) +
+                ν*(curl(eω)⋅curl(eω)) + 
+                0.5/μ*eφ*eφ + 
+                (c_0+κ/ν)*ep*ep + 
+                1.0/λ*(eφ+α*ep)*(eφ+α*ep))dΩ)
+    
+  error
 end
