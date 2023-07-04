@@ -259,6 +259,7 @@ function compute_errors_3D(xh, dΩ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
   error = sum(∫(2.0*μ*ε(eu)⊙ε(eu) + 
                 1.0/κ*ev⋅ev + 
                 ν/κ*(divergence(ev)*divergence(ev)) +
+                eω⋅eω +
                 ν*(curl(eω)⋅curl(eω)) + 
                 0.5/μ*eφ*eφ + 
                 (c_0+κ/ν)*ep*ep + 
