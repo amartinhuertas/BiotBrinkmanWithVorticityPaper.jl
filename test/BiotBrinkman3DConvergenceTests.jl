@@ -30,7 +30,7 @@ function convergence_test_3D(order, μ, λ, ν, κ, α, c_0, nkmax;
           compute_errors_3D(xh, dΩ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
         push!(nn,ndofs)
-        push!(hh,sqrt(3.0/2.0)/(2^(nk))) #for regular tetrahedra: twice the circumradius
+        push!(hh,(sqrt(6.0)/2.0)/(2^(nk)+1)) #for regular tetrahedra: twice the circumradius
         println("******** Total DoFs: ", nn[nk])
         push!(e,error)
         if nk>1
