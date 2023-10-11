@@ -19,5 +19,6 @@ module BiotBrinkmanWithVorticityPaper
     export assemble_3D
     export solve_3D_riesz_mapping_preconditioner_blocks
     export compute_errors_3D
+    export compute_B3_error_norms
     export default_3D_u_ex, default_3D_p_ex, default_3D_v_ex
 end

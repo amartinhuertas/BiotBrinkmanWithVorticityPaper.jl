@@ -136,6 +136,49 @@ function assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
   end
 end 
 
+function compute_operator_norm(B,uh)
+  u=get_free_dof_values(uh)
+  sqrt(dot(u,B*u))
+end
+
+function compute_B3_error_norms(xh, op, dΩ, dΛ, dΣ, h_e, h_e_Σ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+  blocks=assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
+                                                         h_e, h_e_Σ,
+                                                         μ, λ, ν, κ, α, c_0;
+                                                         prec_variant=:B3)
+
+  A11,A22,A33,A44a,A44b=blocks
+  A11 = LinearOperator(GridapLinearSolverPreconditioner(A11))
+  A22 = LinearOperator(GridapLinearSolverPreconditioner(A22))
+  A33 = LinearOperator(GridapLinearSolverPreconditioner(A33))
+  A4455 = LinearOperator(GridapLinearSolverPreconditioner(A44a))+
+        LinearOperator(GridapLinearSolverPreconditioner(A44b))
+
+  uh, vh, ωh, φh, ph = xh
+  φ_ex, ω_ex, _, _, _, _ =
+    build_3D_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+
+  eu = u_ex-uh
+  ev = v_ex-vh
+  eω = ω_ex-ωh
+  eφ = φ_ex-φh
+  ep = p_ex-ph
+
+  X1,X2,X3,X4,X5=op.trial
+  X45 = MultiFieldFESpace([X4, X5])
+  euh=interpolate(eu,X1)
+  evh=interpolate(ev,X2)
+  eωh=interpolate(eω,X3)
+  eφh=interpolate(eφ,X4)
+  eph=interpolate(ep,X5)
+  eφph=interpolate([eφh,eph],X45)
+
+  return compute_operator_norm(A11,euh),
+           compute_operator_norm(A22,evh),
+              compute_operator_norm(A33,eωh),
+                 compute_operator_norm(A4455,eφph)
+end 
+
 function solve_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ, h_e, h_e_Σ,
                                                       μ, λ, ν, κ, α, c_0;
                                                       rtol=1.0e-6,
@@ -246,7 +289,7 @@ end
 function compute_errors_3D(xh, dΩ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
   uh, vh, ωh, φh, ph = xh
 
-  φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex =
+  φ_ex, ω_ex, _, _, _, _ =
     build_3D_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
   eu = u_ex-uh
