@@ -152,7 +152,8 @@ function compute_B3_error_norms(xh, op, dΩ, dΛ, dΣ, h_e, h_e_Σ, μ, λ, ν, 
   A22 = LinearOperator(GridapLinearSolverPreconditioner(A22))
   A33 = LinearOperator(GridapLinearSolverPreconditioner(A33))
   A4455 = LinearOperator(GridapLinearSolverPreconditioner(A44a))+
-        LinearOperator(GridapLinearSolverPreconditioner(A44b))
+          LinearOperator(GridapLinearSolverPreconditioner(A44b))
+  P=BlockDiagonalOperator(A11,A22,A33,A4455)
 
   uh, vh, ωh, φh, ph = xh
   φ_ex, ω_ex, _, _, _, _ =
@@ -169,14 +170,14 @@ function compute_B3_error_norms(xh, op, dΩ, dΛ, dΣ, h_e, h_e_Σ, μ, λ, ν, 
   euh=interpolate(eu,X1)
   evh=interpolate(ev,X2)
   eωh=interpolate(eω,X3)
-  eφh=interpolate(eφ,X4)
-  eph=interpolate(ep,X5)
-  eφph=interpolate([eφh,eph],X45)
+  eφph=interpolate([eφ,ep],X45)
+  etotal=interpolate([eu,ev,eω,eφ,ep],op.trial)
 
   return compute_operator_norm(A11,euh),
            compute_operator_norm(A22,evh),
               compute_operator_norm(A33,eωh),
-                 compute_operator_norm(A4455,eφph)
+                 compute_operator_norm(A4455,eφph),
+                    compute_operator_norm(P,etotal)
 end 
 
 function solve_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ, h_e, h_e_Σ,
