@@ -43,10 +43,10 @@ function assemble_3D(model, k, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
    # Define reference FE (P2/RT0/ND0/P1/P0)
    reffe_u = ReferenceFE(lagrangian,VectorValue{Dc,Float64},k+2)
-   reffe_v = ReferenceFE(raviart_thomas,Float64,k)
-   reffe_ω = ReferenceFE(nedelec,Float64,k)
+   reffe_v = ReferenceFE(raviart_thomas,Float64,k+1)
+   reffe_ω = ReferenceFE(nedelec,Float64,k+1)
    reffe_φ = ReferenceFE(lagrangian,Float64,k+1)
-   reffe_p = ReferenceFE(lagrangian,Float64,k)
+   reffe_p = ReferenceFE(lagrangian,Float64,k+1)
 
    # FESpaces
    Uh_ = TestFESpace(model,reffe_u,dirichlet_tags="Gamma",conformity=:H1)
@@ -179,7 +179,7 @@ function compute_B3_error_norms(xh, op, dΩ, dΛ, dΣ, h_e, h_e_Σ, μ, λ, ν, 
   A=A4455_inv
   b=eφph_dof_values
   r=copy(b)
-  rtol=1.0e-12
+  rtol=1.0e-14
   function custom_stopping_condition(solver::KrylovSolver, A, b, r, tol)
     mul!(r, A, solver.x)
     r .-= b                       # r := b - Ax
