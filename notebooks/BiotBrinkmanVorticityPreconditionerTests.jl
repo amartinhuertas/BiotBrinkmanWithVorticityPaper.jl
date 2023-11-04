@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.29
 
 using Markdown
 using InteractiveUtils
@@ -246,19 +246,19 @@ function generate_mxn_grid_plot(grid_param,
 	_,_,params_possible_values = get_x_y(xparam,yparam,ffilter,df)
 	@assert grid_param in keys(params_possible_values)
 	grid_param_values=params_possible_values[grid_param]
-    grid_param_values=[x for x in grid_param_values if (x==:B1 || x==:B3)]
+    grid_param_values=[x for x in grid_param_values if (x==:B1 || x==:B2 || x==:B3)]
     plots=Vector{Any}(undef,length(grid_param_values))
 	for (i,val) in enumerate(grid_param_values)
-		if (grid_param==:B && (val==:B1 || val==:B3)) 
+		if (grid_param==:B && (val==:B1 || val==:B2 || val==:B3)) 
 		 ffilter_grid_param=[grid_param]=>(grid_param)->(grid_param==val);
 		 df_filtered_grid_param = filter(ffilter_grid_param,df)
 		 println(title)
 		 if (grid_param==:B && val==:B1)
-		   title_subplot=L"\mathcal{B}=\mathcal{B}1 \ " * title
+		   title_subplot=L"\mathcal{B}1 \ " * title
 		 elseif (grid_param==:B && val==:B2)
-		   title_subplot=L"\mathcal{B}=\mathcal{B}2 \ " * title
+		   title_subplot=L"\mathcal{B}2 \ " * title
 		 elseif (grid_param==:B && val==:B3)
-		   title_subplot=L"\mathcal{B}=\mathcal{B}3 \ " * title
+		   title_subplot=L"\mathcal{B}3 \ " * title
 		 end 
 		 plots[i]=
 	        plot_xparam_versus_yparam(xparam,yparam,
@@ -310,10 +310,10 @@ begin
 	elseif (νval==1.0e-08)
 		νvals="10^{-8}"
 	end
-	title_plot1=L"\ \ \mu=%$(μvals) \ \ \lambda=%$(λvals) \ \ \alpha=%$(αvals) \ \ \nu=%$(νvals)"
+	title_plot1=L"\ \mu=%$(μvals)\ \ \lambda=%$(λvals) \ \ \alpha=%$(αvals) \ \ \nu=%$(νvals)"
 	ffilter_plot1=[:μ,:λ,:α,:ν]=>(μ,λ,α,ν)->(μ==μval && λ==λval && α==αval && ν==νval);
 	df_filtered_plot1 = df[:,cols_to_filter_plot1];
-	layout = @layout [a b];
+	layout = @layout [a b c];
 	plt=generate_mxn_grid_plot(:B, layout,
 		                   :ndofs, :niters,
 		                   ffilter_plot1, df_filtered_plot1;
@@ -325,7 +325,7 @@ begin
 						   xlabelfontsize=16,
 			               ylabelfontsize=16,
 						   markersize=6,
-	                       size=(800,500),
+	                       size=(1000,650),
 	                       xlabel=L"\mathrm{DoF}",
 						   ylabel=L"\mathrm{\#iterations}")
     savefig(plt,"iters_versus_dofs_lambda_1e8_v1.pdf")
