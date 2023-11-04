@@ -148,12 +148,13 @@ function compute_B3_error_norms(xh, op, dΩ, dΛ, dΣ, h_e, h_e_Σ, μ, λ, ν, 
                                                          prec_variant=:B3)
 
   A11,A22,A33,A44a,A44b=blocks
-  A11 = LinearOperator(GridapLinearSolverPreconditioner(A11))
-  A22 = LinearOperator(GridapLinearSolverPreconditioner(A22))
-  A33 = LinearOperator(GridapLinearSolverPreconditioner(A33))
-  A4455 = LinearOperator(GridapLinearSolverPreconditioner(A44a))+
-          LinearOperator(GridapLinearSolverPreconditioner(A44b))
-  P=BlockDiagonalOperator(A11,A22,A33,A4455)
+  A11 = LinearOperator(A11)
+  A22 = LinearOperator(A22)
+  A33 = LinearOperator(A33)
+  A4455 = LinearOperator(A44a)+LinearOperator(A44b)
+
+  A4455_inv = LinearOperator(GridapLinearSolverPreconditioner(A44a))+
+                LinearOperator(GridapLinearSolverPreconditioner(A44b))
 
   uh, vh, ωh, φh, ph = xh
   φ_ex, ω_ex, _, _, _, _ =
@@ -171,14 +172,36 @@ function compute_B3_error_norms(xh, op, dΩ, dΛ, dΣ, h_e, h_e_Σ, μ, λ, ν, 
   evh=interpolate(ev,X2)
   eωh=interpolate(eω,X3)
   eφph=interpolate([eφ,ep],X45)
-  etotal=interpolate([eu,ev,eω,eφ,ep],op.trial)
+
+  eφph_dof_values=get_free_dof_values(eφph)
+  tmp=zeros(length(eφph_dof_values))
+
+  A=A4455_inv
+  b=eφph_dof_values
+  r=copy(b)
+  rtol=1.0e-12
+  function custom_stopping_condition(solver::KrylovSolver, A, b, r, tol)
+    mul!(r, A, solver.x)
+    r .-= b                       # r := b - Ax
+    bool = norm(r) ≤ tol*norm(b)  # tolerance based on the 2-norm of the residual
+    @printf("ERR NORM: ||b-Ax||/||b||: %16.7e\n",norm(r)/norm(b))
+    return bool
+  end
+  minres_callback(solver) = custom_stopping_condition(solver, A, b, r, rtol)
+  # Using minres here for simplicity, but one could 
+  # use pcg as well, as A is SPD
+  (tmp, stats) = minres(A, b, M=A4455; itmax=2000, verbose=1,
+                        callback=minres_callback,
+                        atol=0.0,
+                        rtol=0.0,
+                        etol=0.0) 
+  eφph_norm=sqrt(dot(tmp,b))  
 
   return compute_operator_norm(A11,euh),
            compute_operator_norm(A22,evh),
               compute_operator_norm(A33,eωh),
-                 compute_operator_norm(A4455,eφph),
-                    compute_operator_norm(P,etotal)
-end 
+                eφph_norm
+ end
 
 function solve_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ, h_e, h_e_Σ,
                                                       μ, λ, ν, κ, α, c_0;
