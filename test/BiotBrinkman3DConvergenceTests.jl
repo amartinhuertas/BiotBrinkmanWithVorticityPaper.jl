@@ -2,6 +2,8 @@ using BiotBrinkmanWithVorticityPaper
 using Gridap
 using Gridap.FESpaces
 using Printf
+#using GridapPardiso
+#using SparseMatricesCSR 
 using Test
 
 function convergence_test_3D(order, μ, λ, ν, κ, α, c_0, nkmax; 
@@ -30,8 +32,14 @@ function convergence_test_3D(order, μ, λ, ν, κ, α, c_0, nkmax;
         println("******** Refinement step: $nk")
         model=generate_3D_model(nk)
         op=assemble_3D(model, order, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
-        xh=solve(op)
 
+        #ps = PardisoSolver(mtype=GridapPardiso.MTYPE_REAL_SYMMETRIC_INDEFINITE, msglvl=GridapPardiso.MSGLVL_VERBOSE)
+        #solver = LinearFESolver(ps)
+        #xh=solve(solver,op)
+        #uh, vh, ωh, φh, ph = xh
+        #ndofs=num_free_dofs(Gridap.FESpaces.get_fe_space(xh))
+        xh=solve(op)
+        
         Ω = Triangulation(model)
         dΩ = Measure(Ω,2*(order+2))
         Λ  = SkeletonTriangulation(model)
@@ -73,7 +81,7 @@ end
 # Arbitrary model parameters
 const μ   = 10.0
 const λ   = 1.0e+02
-const ν   = 1.0e-01
+const ν   = 1.0e-03
 const κ   = 1.0e-03
 const α   = 0.1
 const c_0 = 0.1

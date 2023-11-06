@@ -4,6 +4,8 @@ module BiotBrinkmanWithVorticityPaper
     using LinearAlgebra
     using Krylov
     using Printf
+    # using GridapPardiso
+    # using SparseMatricesCSR
 
     include("PreconditioningTools.jl")
     include("BiotBrinkmanWithVorticity2DTools.jl")

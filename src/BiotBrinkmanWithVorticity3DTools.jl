@@ -86,8 +86,15 @@ function assemble_3D(model, k, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
                         ∫(ν/κ*(ζ⋅n_Σ)*(∇⋅v_ex))dΣ -
                         ∫(p_ex*(ζ⋅n_Σ))dΣ -
                         ∫(sqrt(ν/κ)*(v_ex⋅(θ×n_Σ)))dΣ 
-
+  
+    
+   #assem = SparseMatrixAssembler(SymSparseMatrixCSR{1,Float64,Int},
+   #                              Vector{Float64},
+   #                              Xh,
+   #                              Yh)
+   
    # Build affine FE operator
+   #op = AffineFEOperator(lhs,rhs,Xh,Yh,assem)
    op = AffineFEOperator(lhs,rhs,Xh,Yh)
 end
 
@@ -100,7 +107,7 @@ function assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
   @assert prec_variant in (:B1,:B2,:B3)
   if (prec_variant==:B1)
     a11_B1(u,γ)=∫(2.0*μ*ε(γ)⊙ε(u))dΩ
-    a22_B1(v,ζ)=∫((1.0/κ)*v⋅ζ+1.0/κ*(∇⋅v)*(∇⋅ζ))dΩ
+    a22_B1(v,ζ)=∫((1.0/κ)*v⋅ζ+ν/κ*(∇⋅v)*(∇⋅ζ))dΩ
     a33_B1(ω,θ)=∫((ω⋅θ)+ν*(∇×ω)⋅(∇×θ))dΩ
     a44_B1(φ,ψ)=∫((1.0/λ+0.5/μ)*φ*ψ)dΩ
     a55_B1(p,q)=∫((c_0+α^2/λ+κ)*p*q)dΩ
@@ -111,7 +118,7 @@ function assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
   elseif (prec_variant==:B2)
     a11_B2(u,γ)=∫(2.0*μ*ε(γ)⊙ε(u))dΩ
     a22_B2(v,ζ)=∫((1.0/κ)*v⋅ζ+ν/κ*(∇⋅v)*(∇⋅ζ))dΩ
-    a33_B2(ω,θ)=∫((ω⋅θ)+sqrt(ν/κ)*(∇×ω)⋅(∇×θ))dΩ
+    a33_B2(ω,θ)=∫((ω⋅θ)+ν*(∇×ω)⋅(∇×θ))dΩ
     a44_B2(φ,ψ)=∫((1.0/λ+0.5/μ)*φ*ψ)dΩ
     a55_B2(p,q)=∫((c_0+α^2/λ)*p*q)dΩ + ∫((κ/ν)*(∇(p))⋅∇(q))dΩ + 
                 ∫((κ/ν)*1.0/h_e*jump(p)*jump(q))dΛ + ∫((κ/ν)*1.0/h_e_Σ*p*q)dΣ

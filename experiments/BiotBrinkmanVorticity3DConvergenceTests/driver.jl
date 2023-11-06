@@ -2,6 +2,7 @@ module Driver
   # Add here whichever modules/packages your
   # driver function may need
   using Gridap
+  #using GridapPardiso
   using BiotBrinkmanWithVorticityPaper
 
   function driver(nk, order, μ, λ, ν, κ, α, c_0)
@@ -27,6 +28,10 @@ module Driver
     v_ex=default_3D_v_ex
 
     op=assemble_3D(model, order, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+    #ps = PardisoSolver(mtype=GridapPardiso.MTYPE_REAL_SYMMETRIC_INDEFINITE)
+    #	 	       #msglvl=GridapPardiso.MSGLVL_VERBOSE)
+    #solver = LinearFESolver(ps)
+    #xh=solve(solver,op)
     xh=solve(op)
     
     eu,ev,eω,eφp=
