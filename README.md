@@ -14,6 +14,8 @@ Repository that holds the Julia software and computational results reported in S
 
 ## Instructions to generate and visualize Riesz mapping preconditioner evaluation results (Section 5.3)
 
+**IMPORTANT NOTE**: _The instructions below can be applied almost verbatim to generate the results in Section 5.2. The only difference being the scripts to be used, located in the `BiotBrinkman3DConvergenceTests` folder_
+
 **IMPORTANT NOTE**: _As a pre-requisite to follow the instructions below, `DrWatson.jl` must be installed in the main julia 
 environment, e.g., `v1.9` if you have Julia 1.9. Please install it in the 
 main julia environment before following the instructions in the sequel._
