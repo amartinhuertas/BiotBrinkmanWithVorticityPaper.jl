@@ -43,10 +43,10 @@ function assemble_3D(model, k, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
    # Define reference FE (P2/RT0/ND0/P1/P0)
    reffe_u = ReferenceFE(lagrangian,VectorValue{Dc,Float64},k+2)
-   reffe_v = ReferenceFE(raviart_thomas,Float64,k+1)
-   reffe_ω = ReferenceFE(nedelec,Float64,k+1)
+   reffe_v = ReferenceFE(raviart_thomas,Float64,k)
+   reffe_ω = ReferenceFE(nedelec,Float64,k)
    reffe_φ = ReferenceFE(lagrangian,Float64,k+1)
-   reffe_p = ReferenceFE(lagrangian,Float64,k+1)
+   reffe_p = ReferenceFE(lagrangian,Float64,k)
 
    # FESpaces
    Uh_ = TestFESpace(model,reffe_u,dirichlet_tags="Gamma",conformity=:H1)
