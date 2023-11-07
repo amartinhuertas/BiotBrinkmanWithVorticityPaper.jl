@@ -43,10 +43,10 @@ function assemble_3D(model, k, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
    # Define reference FE (P2/RT0/ND0/P1/P0)
    reffe_u = ReferenceFE(lagrangian,VectorValue{Dc,Float64},k+2)
-   reffe_v = ReferenceFE(raviart_thomas,Float64,k)
-   reffe_ω = ReferenceFE(nedelec,Float64,k)
+   reffe_v = ReferenceFE(raviart_thomas,Float64,k+1)
+   reffe_ω = ReferenceFE(nedelec,Float64,k+1)
    reffe_φ = ReferenceFE(lagrangian,Float64,k+1)
-   reffe_p = ReferenceFE(lagrangian,Float64,k)
+   reffe_p = ReferenceFE(lagrangian,Float64,k+1)
 
    # FESpaces
    Uh_ = TestFESpace(model,reffe_u,dirichlet_tags="Gamma",conformity=:H1)
@@ -86,8 +86,15 @@ function assemble_3D(model, k, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
                         ∫(ν/κ*(ζ⋅n_Σ)*(∇⋅v_ex))dΣ -
                         ∫(p_ex*(ζ⋅n_Σ))dΣ -
                         ∫(sqrt(ν/κ)*(v_ex⋅(θ×n_Σ)))dΣ 
-
+  
+    
+   #assem = SparseMatrixAssembler(SymSparseMatrixCSR{1,Float64,Int},
+   #                              Vector{Float64},
+   #                              Xh,
+   #                              Yh)
+   
    # Build affine FE operator
+   #op = AffineFEOperator(lhs,rhs,Xh,Yh,assem)
    op = AffineFEOperator(lhs,rhs,Xh,Yh)
 end
 
@@ -100,7 +107,7 @@ function assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
   @assert prec_variant in (:B1,:B2,:B3)
   if (prec_variant==:B1)
     a11_B1(u,γ)=∫(2.0*μ*ε(γ)⊙ε(u))dΩ
-    a22_B1(v,ζ)=∫((1.0/κ)*v⋅ζ+1.0/κ*(∇⋅v)*(∇⋅ζ))dΩ
+    a22_B1(v,ζ)=∫((1.0/κ)*v⋅ζ+ν/κ*(∇⋅v)*(∇⋅ζ))dΩ
     a33_B1(ω,θ)=∫((ω⋅θ)+ν*(∇×ω)⋅(∇×θ))dΩ
     a44_B1(φ,ψ)=∫((1.0/λ+0.5/μ)*φ*ψ)dΩ
     a55_B1(p,q)=∫((c_0+α^2/λ+κ)*p*q)dΩ
@@ -111,7 +118,7 @@ function assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
   elseif (prec_variant==:B2)
     a11_B2(u,γ)=∫(2.0*μ*ε(γ)⊙ε(u))dΩ
     a22_B2(v,ζ)=∫((1.0/κ)*v⋅ζ+ν/κ*(∇⋅v)*(∇⋅ζ))dΩ
-    a33_B2(ω,θ)=∫((ω⋅θ)+sqrt(ν/κ)*(∇×ω)⋅(∇×θ))dΩ
+    a33_B2(ω,θ)=∫((ω⋅θ)+ν*(∇×ω)⋅(∇×θ))dΩ
     a44_B2(φ,ψ)=∫((1.0/λ+0.5/μ)*φ*ψ)dΩ
     a55_B2(p,q)=∫((c_0+α^2/λ)*p*q)dΩ + ∫((κ/ν)*(∇(p))⋅∇(q))dΩ + 
                 ∫((κ/ν)*1.0/h_e*jump(p)*jump(q))dΛ + ∫((κ/ν)*1.0/h_e_Σ*p*q)dΣ
@@ -135,6 +142,73 @@ function assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
     return A11,A22,A33,A44a,A44b
   end
 end 
+
+function compute_operator_norm(B,uh)
+  u=get_free_dof_values(uh)
+  sqrt(dot(u,B*u))
+end
+
+function compute_B3_error_norms(xh, op, dΩ, dΛ, dΣ, h_e, h_e_Σ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+  blocks=assemble_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ,
+                                                         h_e, h_e_Σ,
+                                                         μ, λ, ν, κ, α, c_0;
+                                                         prec_variant=:B3)
+
+  A11,A22,A33,A44a,A44b=blocks
+  A11 = LinearOperator(A11)
+  A22 = LinearOperator(A22)
+  A33 = LinearOperator(A33)
+  A4455 = LinearOperator(A44a)+LinearOperator(A44b)
+
+  A4455_inv = LinearOperator(GridapLinearSolverPreconditioner(A44a))+
+                LinearOperator(GridapLinearSolverPreconditioner(A44b))
+
+  uh, vh, ωh, φh, ph = xh
+  φ_ex, ω_ex, _, _, _, _ =
+    build_3D_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
+
+  eu = u_ex-uh
+  ev = v_ex-vh
+  eω = ω_ex-ωh
+  eφ = φ_ex-φh
+  ep = p_ex-ph
+
+  X1,X2,X3,X4,X5=op.trial
+  X45 = MultiFieldFESpace([X4, X5])
+  euh=interpolate(eu,X1)
+  evh=interpolate(ev,X2)
+  eωh=interpolate(eω,X3)
+  eφph=interpolate([eφ,ep],X45)
+
+  eφph_dof_values=get_free_dof_values(eφph)
+  tmp=zeros(length(eφph_dof_values))
+
+  A=A4455_inv
+  b=eφph_dof_values
+  r=copy(b)
+  rtol=1.0e-14
+  function custom_stopping_condition(solver::KrylovSolver, A, b, r, tol)
+    mul!(r, A, solver.x)
+    r .-= b                       # r := b - Ax
+    bool = norm(r) ≤ tol*norm(b)  # tolerance based on the 2-norm of the residual
+    @printf("ERR NORM: ||b-Ax||/||b||: %16.7e\n",norm(r)/norm(b))
+    return bool
+  end
+  minres_callback(solver) = custom_stopping_condition(solver, A, b, r, rtol)
+  # Using minres here for simplicity, but one could 
+  # use pcg as well, as A is SPD
+  (tmp, stats) = minres(A, b, M=A4455; itmax=2000, verbose=1,
+                        callback=minres_callback,
+                        atol=0.0,
+                        rtol=0.0,
+                        etol=0.0) 
+  eφph_norm=sqrt(dot(tmp,b))  
+
+  return compute_operator_norm(A11,euh),
+           compute_operator_norm(A22,evh),
+              compute_operator_norm(A33,eωh),
+                eφph_norm
+ end
 
 function solve_3D_riesz_mapping_preconditioner_blocks(op, dΩ, dΛ, dΣ, h_e, h_e_Σ,
                                                       μ, λ, ν, κ, α, c_0;
@@ -246,7 +320,7 @@ end
 function compute_errors_3D(xh, dΩ, μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
   uh, vh, ωh, φh, ph = xh
 
-  φ_ex, ω_ex, σ_ex, b_ex, f_ex, g_ex =
+  φ_ex, ω_ex, _, _, _, _ =
     build_3D_analytical_functions(μ, λ, ν, κ, α, c_0, u_ex, p_ex, v_ex)
 
   eu = u_ex-uh
