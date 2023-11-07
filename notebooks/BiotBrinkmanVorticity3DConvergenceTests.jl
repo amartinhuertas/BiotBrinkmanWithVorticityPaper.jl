@@ -1,0 +1,381 @@
+### A Pluto.jl notebook ###
+# v0.19.29
+
+using Markdown
+using InteractiveUtils
+
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
+# ╔═╡ 38e1939a-3c91-4b7b-88fd-ae7e01eda602
+# Run notebook in Pluto.jl "backward compatibility mode" 
+# using the so-called "global environment" pattern
+# see https://github.com/fonsp/Pluto.jl/wiki/%F0%9F%8E%81-Package-management 
+# for more details
+begin
+    import Pkg
+    # activate the shared project environment
+    Pkg.activate(Base.current_project())
+    # instantiate, i.e. make sure that all packages are downloaded
+    Pkg.instantiate()
+end
+
+# ╔═╡ 299c6e30-9107-4039-a11c-32ed6d9b1460
+using DrWatson
+
+# ╔═╡ 52a4a234-a99c-4e0d-b1e7-f54ddc11ff45
+using DataFrames
+
+# ╔═╡ 08a6ab1f-ef85-41a3-bb1a-933d578e4f93
+using BSON
+
+# ╔═╡ 696ffce0-e025-409c-8628-48b06fc7fd38
+using PlutoUI
+
+# ╔═╡ e82ad202-94eb-4f79-8aa3-7dd40375328b
+using Plots
+
+# ╔═╡ 63536890-4206-48eb-897e-e868e371c721
+using LaTeXStrings
+
+# ╔═╡ 106ded38-479d-4961-a127-24c2b416aa9d
+md"""## BiotBrinkmanVorticity3DConvergenceTests
+"""
+
+# ╔═╡ 4b25a735-1391-4985-a761-6764b20985c5
+gr()
+
+# ╔═╡ 69205551-a348-4d20-8b1e-0860f6c7eafe
+experiment_data_directory="BiotBrinkmanVorticity3DConvergenceTests";
+
+# ╔═╡ efe130ca-eb74-4cb4-af77-f6be72f048f6
+commit_dirs=readdir(datadir(experiment_data_directory)); 
+
+# ╔═╡ 2795d244-a4ce-4e0c-96f4-469a432b96f6
+md"""
+Select commit ID data directory: $(@bind commitID Select(commit_dirs)) 
+"""
+
+# ╔═╡ 7436ace4-c30a-474d-b0cd-195f7fd44d77
+df = collect_results(datadir(experiment_data_directory,commitID));
+
+# ╔═╡ 602c6a8b-5a9d-4aba-9a73-c7af073feed0
+cols_to_filter = [:μ,:λ,:ν,:κ,:α,:c_0,:hh, :eu, :ev, :eω, :eφp];
+
+# ╔═╡ 82f442f6-9b3b-46ce-9c91-bb3e54abd526
+df_filtered = df[:,cols_to_filter];
+
+# ╔═╡ dc1987a0-5361-4d2d-ac99-c4e391b7b648
+total_error=sqrt.(df_filtered[:,:eu].^2+
+                    df_filtered[:,:ev].^2+
+                      df_filtered[:,:eω].^2+
+                        df_filtered[:,:eφp].^2);
+
+# ╔═╡ 5199ad93-ae07-4750-88c5-238fbae0d90a
+insertcols!(df_filtered,ncol(df_filtered)+1,:etotal=>total_error);
+
+# ╔═╡ e4e03f80-42b4-459a-b75a-1e1364b3b659
+df_filtered_cols = Dict(pairs(eachcol(df_filtered)));
+
+# ╔═╡ 414e8521-662f-40f9-9c9e-def65d438fc7
+params_possible_values=
+	    Dict([k=>unique(df_filtered_cols[k]) 
+			    for k in keys(df_filtered_cols)]);
+
+# ╔═╡ 17e099ff-caec-4d52-8de8-c3d9f110cf0c
+
+
+# ╔═╡ e6574182-c313-4f09-b9a7-ad09751ad5ef
+md"""
+Select the parameter-value combination that you want to visualize!:
+
+μ:   $(@bind μval Select(params_possible_values[:μ]))
+λ:   $(@bind λval Select(params_possible_values[:λ]))
+ν:   $(@bind νval Select(params_possible_values[:ν]))
+κ:   $(@bind κval Select(params_possible_values[:κ]))
+α:   $(@bind αval Select(params_possible_values[:α])) 
+c0: $(@bind c0val Select(params_possible_values[:c_0]))
+
+Customize visualization
+
+legend position: $(@bind lposition Select([:right, :left, :top, :bottom, :inside, :best, :legend, :topright, :topleft, :bottomleft, :bottomright, :outertopleft];default=:topleft))
+
+autoxlims: $(@bind autoxlims CheckBox(;default=true)) 
+xlimleft: $(@bind xliml TextField((2,1);default="0.0"))
+xlimright: $(@bind xlimr TextField((2,1);default="1.0"))
+
+autoylims: $(@bind autoylims CheckBox(;default=true))
+ylimbottom: $(@bind ylimb TextField((2,1);default="0.0"))
+ylimtop: $(@bind ylimt TextField((2,1);default="500.0"))
+
+logx: $(@bind logxval CheckBox(;default=true)) 
+logy: $(@bind logyval CheckBox(;default=true))
+
+"""
+
+# ╔═╡ 5748a503-4534-462a-b485-386d68fe857d
+function generate_labels(params_possible_values,keys_to_filter)
+  dl=dict_list(params_possible_values)
+  labels=Vector{String}(undef,length(dl))
+  for (i,d) in enumerate(dl)
+	label=""
+    if (haskey(d,:c_0) && haskey(d,:κ))
+	  if (d[:c_0]==1.0 && d[:κ]==1.0)
+		  label=L"c_0=1 \ \kappa=1"
+	  elseif (d[:c_0]==1.0 && d[:κ]==1.0e-08)
+		  label=L"c_0=1 \ \kappa=10^{-8}"
+	  elseif (d[:c_0]==1.0e-08 && d[:κ]==1.0)
+		  label=L"c_0=10^{-8} \ \kappa=1"
+	  elseif (d[:c_0]==1.0e-08 && d[:κ]==1.0e-08)
+		  label=L"c_0=10^{-8} \ \kappa=10^{-8}"	  
+	  end 
+	else 	  
+		for (key,val) in d
+		  if !(key in keys_to_filter)
+			label=label * "$(key)=$(val)"	
+		  end 	  
+		end
+	end
+	labels[i]=label  
+  end
+  labels
+end 
+
+# ╔═╡ 2c7a1e9b-ebe7-4631-a14d-0c2ea0d7293b
+function get_x_y(xparam, yparam, ffilter, df)
+  df_filtered = filter(ffilter,df)
+  df_filtered_cols = Dict(pairs(eachcol(df_filtered)))
+  @assert xparam in keys(df_filtered_cols)
+  @assert yparam in keys(df_filtered_cols)
+	
+  params_possible_values=
+	    Dict([k=>unique(df_filtered_cols[k]) 
+			    for k in keys(df_filtered_cols) if k != xparam && k != yparam])
+	
+  dl=dict_list(params_possible_values)
+
+  # The following code is general enough so that for 
+  # fixed (xparam, yparam) there might be several 
+  # possible combinations for the rest of parameters
+  # after applying ffilter. In such a case we generate
+  # as many curves as combinations of the rest of 
+  # parameter values.
+  xall=[]
+  yall=[]	
+  for d in dl
+      function f(a...)
+		  equal=all(a .== values(d)) 
+	  end 
+	  ffilter_current_d = collect(keys(d))=>f
+	  df_tmp=filter(ffilter_current_d,df_filtered)
+	  sort!(df_tmp,[xparam,])
+      x = df_tmp[!,xparam]
+      y = df_tmp[!,yparam]
+      push!(xall,x)
+	  push!(yall,y)
+  end
+  (xall,yall,params_possible_values)
+end
+
+# ╔═╡ 9478d88e-bc39-40b2-be09-3789e4fff51e
+function plot_xparam_versus_yparam(xparam,yparam,xaxis,yaxis,ffilter,df;
+                                   autoxlims=true,
+                                   autoylims=true,
+                                   title="",
+                                   titlefontsize=14,
+                                   legendfontsize=10,
+                                   xliml=1.0e-04,
+                                   xlimr=1.0e-01,
+                                   ylimb=10.0,
+                                   ylimt=1.0e-04,
+                                   markersize=4,
+                                   extra_keys_to_filter=Symbol[],
+                                   ylabel="$xparam",
+                                   xlabel="$yparam",
+                                   xtickfontsize=5,
+                                   ytickfontsize=5, 
+                                   xlabelfontsize=5,
+                                   ylabelfontsize=5)
+  f = plot()
+  x,y,params_possible_values = get_x_y(xparam,yparam,ffilter,df)
+  keys_to_filter=deepcopy(first(ffilter))
+  push!(keys_to_filter, extra_keys_to_filter...)	
+  labels=generate_labels(params_possible_values,keys_to_filter)
+  @assert length(x)==length(y)
+  @assert length(labels)==length(y)	
+
+  println([yi[end] for yi in y]) 
+  ymax=maximum([yi[end] for yi in y])
+  println("ymax: $(ymax)")	
+  h2_at_last_point=(x[1][end]^2)
+  offset=abs(ymax-h2_at_last_point)
+			
+  ideal_slope_h=[a for a in x[1]]
+  ideal_slope_h2=[offset*a^2 for a in x[1]]
+
+  plot!(x[1],ideal_slope_h2,xaxis=xaxis,yaxis=yaxis,
+  		  title=title,titlefontsize=titlefontsize,
+  		  legendfontsize=legendfontsize,
+  		  label=L"h^2",linewidth=3,lc=:black,ls=:dot,
+  	      xlabel=xlabel,ylabel=ylabel,xtickfontsize=xtickfontsize,
+  	      ytickfontsize=ytickfontsize,xlabelfontsize=xlabelfontsize,
+  	      ylabelfontsize=ylabelfontsize,thickness_scaling=1)
+	
+  for (xi,yi,li) in zip(x,y,labels)
+    plot!(xi,yi,xaxis=xaxis,yaxis=yaxis,
+		  title=title,titlefontsize=titlefontsize,
+		  legendfontsize=legendfontsize,
+		  label=li,markershape=:auto,markersize=markersize,
+	      xlabel=xlabel,ylabel=ylabel,xtickfontsize=xtickfontsize,
+	      ytickfontsize=ytickfontsize,xlabelfontsize=xlabelfontsize,
+	      ylabelfontsize=ylabelfontsize,thickness_scaling=1,
+		  legendmarkersize=8)
+  end 
+  plot!(xlabel=xlabel,ylabel=ylabel,legend=lposition)
+  if (!autoxlims)
+    xlims!((xliml,xlimr))
+  end	  
+  if (!autoylims)
+    ylims!((ylimb,ylimt))
+  end	
+  f
+end
+
+# ╔═╡ 9880a404-126f-451c-99a9-4787ac816ec5
+function generate_mxn_grid_plot(grid_param,
+	                            layout,
+	                            xparam,
+	                            yparam,
+	                            ffilter,
+	                            df;
+	                            title="",
+								titlefontsize=titlefontsize,
+							    legendfontsize=legendfontsize,
+								xtickfontsize=5,
+								ytickfontsize=5,
+                                size=size,
+                                markersize=markersize,
+                                xlabel="",
+                                ylabel="",
+                                xlabelfontsize=5,
+			                    ylabelfontsize=5)
+	_,_,params_possible_values = get_x_y(xparam,yparam,ffilter,df)
+	
+	 df_filtered_grid_param = df
+	 
+	 if (grid_param==:eu)
+	   title_subplot=L"||u-u_h|| \ " * title
+	 elseif (grid_param==:ev)
+	   title_subplot=L"||v-v_h|| \ " * title
+	 elseif (grid_param==:eω)
+	   title_subplot=L"||ω-ω_h|| \ " * title
+	 elseif (grid_param==:eφp)
+	   title_subplot=L"||[φ,p]-[φ_h,p_h]|| \ " * title
+	 elseif (grid_param==:etotal)
+	   title_subplot=L"||x-x_h||_{\mathcal{B}_3} \ " * title	 
+	 end 
+		 
+	 plot_xparam_versus_yparam(xparam,yparam,
+				  :log10,
+				  :log10,
+				  ffilter,
+				  df_filtered_grid_param;
+				  autoxlims=autoxlims,
+				  autoylims=autoylims,
+				  title=title_subplot,
+				  titlefontsize=titlefontsize,
+				  legendfontsize=legendfontsize,
+				  markersize=markersize,
+				  xliml=parse(Float64, xliml),xlimr=parse(Float64, xlimr),
+				  ylimb=parse(Float64, ylimb),ylimt=parse(Float64, ylimt),
+				  extra_keys_to_filter=[grid_param],
+				  xlabel=xlabel,
+				  ylabel=ylabel,
+				  xtickfontsize=xtickfontsize,
+				  ytickfontsize=ytickfontsize,
+				  xlabelfontsize=xlabelfontsize,
+				  ylabelfontsize=ylabelfontsize,
+				  )   
+end 
+
+# ╔═╡ af9c277b-6ad2-4be0-abb7-5ad505aa7649
+begin
+	for x in [:eu, :ev, :eω, :eφp, :etotal]
+		cols_to_filter_plot1 = [:μ,:λ,:ν,:κ,:α,:c_0,:hh,x];
+		if (μval==1.0)
+			μvals="1"
+		elseif (μval==1.0e08)
+			μvals="10^{-8}"
+		end
+		if (λval==1.0)
+			λvals="1"
+		elseif (λval==1.0e08)
+			λvals="10^{8}"
+		end
+		if (αval==1.0)
+			αvals="1"
+		elseif (αval==1.0e-08)
+			αvals="10^{-8}"
+		end
+		if (νval==1.0)
+			νvals="1"
+		elseif (νval==1.0e-08)
+			νvals="10^{-8}"
+		end
+		title_plot1=L"\ \mu=%$(μvals)\ \ \lambda=%$(λvals) \ \ \alpha=%$(αvals) \ \ \nu=%$(νvals)"
+		ffilter_plot1=[:μ,:λ,:α,:ν]=>(μ,λ,α,ν)->(μ==μval && λ==λval && α==αval && ν==νval);
+		df_filtered_plot1 = df_filtered[:,cols_to_filter_plot1];
+		layout = @layout [1];
+		plt=generate_mxn_grid_plot(x, layout,
+			                   :hh, x,
+			                   ffilter_plot1, df_filtered_plot1;
+		                       title=title_plot1,
+		                       titlefontsize=12,
+		                       legendfontsize=8,
+							   xtickfontsize=12,
+							   ytickfontsize=12,
+							   xlabelfontsize=16,
+				               ylabelfontsize=16,
+							   markersize=6,
+		                       size=(1000,650),
+		                       xlabel=L"h",
+							   ylabel=L"\mathrm{error}")
+	    savefig(plt,
+			"$(x)_versus_dofs_mu_$(μval)_lambda_$(λval)_alpha_$(αval)_v$(νval).pdf")
+	end
+end
+
+# ╔═╡ Cell order:
+# ╟─106ded38-479d-4961-a127-24c2b416aa9d
+# ╟─38e1939a-3c91-4b7b-88fd-ae7e01eda602
+# ╠═299c6e30-9107-4039-a11c-32ed6d9b1460
+# ╠═52a4a234-a99c-4e0d-b1e7-f54ddc11ff45
+# ╠═08a6ab1f-ef85-41a3-bb1a-933d578e4f93
+# ╠═696ffce0-e025-409c-8628-48b06fc7fd38
+# ╠═e82ad202-94eb-4f79-8aa3-7dd40375328b
+# ╠═4b25a735-1391-4985-a761-6764b20985c5
+# ╠═63536890-4206-48eb-897e-e868e371c721
+# ╠═69205551-a348-4d20-8b1e-0860f6c7eafe
+# ╠═efe130ca-eb74-4cb4-af77-f6be72f048f6
+# ╠═2795d244-a4ce-4e0c-96f4-469a432b96f6
+# ╠═7436ace4-c30a-474d-b0cd-195f7fd44d77
+# ╠═602c6a8b-5a9d-4aba-9a73-c7af073feed0
+# ╠═82f442f6-9b3b-46ce-9c91-bb3e54abd526
+# ╠═dc1987a0-5361-4d2d-ac99-c4e391b7b648
+# ╠═5199ad93-ae07-4750-88c5-238fbae0d90a
+# ╠═e4e03f80-42b4-459a-b75a-1e1364b3b659
+# ╠═414e8521-662f-40f9-9c9e-def65d438fc7
+# ╟─17e099ff-caec-4d52-8de8-c3d9f110cf0c
+# ╠═e6574182-c313-4f09-b9a7-ad09751ad5ef
+# ╠═af9c277b-6ad2-4be0-abb7-5ad505aa7649
+# ╠═9880a404-126f-451c-99a9-4787ac816ec5
+# ╠═9478d88e-bc39-40b2-be09-3789e4fff51e
+# ╠═5748a503-4534-462a-b485-386d68fe857d
+# ╟─2c7a1e9b-ebe7-4631-a14d-0c2ea0d7293b
